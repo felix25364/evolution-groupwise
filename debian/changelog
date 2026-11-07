@@ -1,3 +1,11 @@
+evolution-groupwise (0.11.1) trixie; urgency=medium
+
+  * Replies are linked to the message they answer: GroupWise marks the
+    original replied and shows the reply under it in the discussion
+    thread (issue #1).
+
+ -- Rainer Backes <rbackes@bond.de>  Sat, 07 Nov 2026 15:00:00 +0100
+
 evolution-groupwise (0.11.0) trixie; urgency=medium
 
   * Proxy calendars can be added in Evolution: "Add Proxy Calendar…" in

@@ -10,7 +10,7 @@
 #
 
 Name:           evolution-groupwise
-Version:        0.11.0
+Version:        0.11.1
 Release:        0
 Summary:        GroupWise mailboxes in Evolution
 License:        LGPL-2.1-or-later
@@ -100,6 +100,10 @@ line tool.
 %endif
 
 %changelog
+* Sat Nov 07 2026 Rainer Backes <rbackes@bond.de> - 0.11.1-0
+- Replies are linked to the message they answer: GroupWise marks the original
+  replied and shows the reply under it in the discussion thread (issue #1).
+
 * Tue Oct 13 2026 Rainer Backes <rbackes@bond.de> - 0.11.0-0
 - Proxy calendars can be added in Evolution: "Add Proxy Calendar…" in the
   context menu of a calendar shows the whole calendar of a user or resource of
