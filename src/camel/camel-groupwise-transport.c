@@ -196,6 +196,84 @@ embed_item (const gchar *item_id,
 	return attachment;
 }
 
+/* The item of @folder with the Message-ID @in_reply_to, NULL if none */
+static gchar *
+find_replied_item (CamelFolder *folder,
+		   const gchar *in_reply_to,
+		   GCancellable *cancellable)
+{
+	GString *expression = g_string_new ("(match-all (header-matches \"message-id\" ");
+	GPtrArray *uids;
+	gchar *item_id = NULL;
+
+	camel_sexp_encode_string (expression, in_reply_to);
+	g_string_append (expression, "))");
+	uids = camel_folder_search_by_expression (folder, expression->str, cancellable, NULL);
+	if (uids && uids->len)
+		item_id = g_strdup (uids->pdata[0]);
+	if (uids)
+		camel_folder_search_free (folder, uids);
+	g_string_free (expression, TRUE);
+
+	return item_id;
+}
+
+/* A reply to a message of the account: the <link> replyRequest gives for
+ * it. Sent with it the POA marks the original replied and puts the reply
+ * into its discussion thread. Evolution names the message replied to only
+ * in its own headers, which it takes off before sending, so the message
+ * with the Message-ID of In-Reply-To is looked for in the open folders of
+ * the account and in the Mailbox. */
+static gchar *
+dup_reply_link (CamelGroupwiseStore *store,
+		EGwConnection *cnc,
+		CamelMimeMessage *message,
+		GCancellable *cancellable)
+{
+	const gchar *in_reply_to = camel_medium_get_header (CAMEL_MEDIUM (message), "In-Reply-To");
+	GPtrArray *folders;
+	CamelFolder *inbox;
+	EGwResponse *response;
+	GString *inner;
+	GError *error = NULL;
+	gchar *item_id = NULL, *link = NULL;
+	guint ii;
+
+	if (!in_reply_to || !*in_reply_to)
+		return NULL;
+
+	folders = camel_store_dup_opened_folders (CAMEL_STORE (store));
+	for (ii = 0; folders && ii < folders->len && !item_id; ii++)
+		item_id = find_replied_item (folders->pdata[ii], in_reply_to, cancellable);
+	if (!item_id) {
+		inbox = camel_store_get_inbox_folder_sync (CAMEL_STORE (store), cancellable, NULL);
+		if (inbox && (!folders || !g_ptr_array_find (folders, inbox, NULL)))
+			item_id = find_replied_item (inbox, in_reply_to, cancellable);
+		g_clear_object (&inbox);
+	}
+	if (folders)
+		g_ptr_array_unref (folders);
+	if (!item_id) {
+		g_debug ("send: the message replied to (%s) is not in the account", in_reply_to);
+		return NULL;
+	}
+
+	inner = g_string_new (NULL);
+	e_gw_xml_add_leaf (inner, "id", item_id);
+	g_string_append (inner, "<view/>");
+	response = e_gw_connection_call_sync (cnc, "reply", inner->str, cancellable, &error);
+	g_string_free (inner, TRUE);
+	if (response)
+		link = dump_element (e_gw_response_get_node (response), "item/link");
+	if (!link)
+		g_debug ("send: reply to %s without link: %s", item_id, error ? error->message : "none returned");
+	g_clear_error (&error);
+	e_gw_response_free (response);
+	g_free (item_id);
+
+	return link;
+}
+
 /* The mailbox to send from when the sender of the message is not the user
  * of the account but one he is proxy of (a user or a resource, an alias of
  * the identity): the address to log in as its proxy, else NULL */
@@ -253,7 +331,7 @@ groupwise_transport_send_to_sync (CamelTransport *transport,
 	EGwResponse *response;
 	GError *local_error = NULL;
 	gboolean read_only;
-	gchar *item, *sender;
+	gchar *item, *sender, *link = NULL;
 
 	store = transport_ref_store (CAMEL_SERVICE (transport), error);
 	if (!store)
@@ -295,9 +373,14 @@ groupwise_transport_send_to_sync (CamelTransport *transport,
 		g_debug ("send: as proxy of %s", sender);
 		g_object_unref (cnc);
 		cnc = proxy_cnc;
+	} else {
+		/* The message replied to is one of this mailbox only when
+		 * sending from it */
+		link = dup_reply_link (store, cnc, message, cancellable);
 	}
 
-	item = camel_groupwise_item_from_message (message, recipients, FALSE, embed_item, cnc, cancellable, error);
+	item = camel_groupwise_item_from_message (message, recipients, FALSE, link, embed_item, cnc, cancellable, error);
+	g_free (link);
 	if (!item) {
 		if (sender)
 			e_gw_connection_logout_sync (cnc, cancellable);

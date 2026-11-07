@@ -400,6 +400,7 @@ gchar *
 camel_groupwise_item_from_message (CamelMimeMessage *message,
 				   CamelAddress *recipients,
 				   gboolean draft,
+				   const gchar *link_xml,
 				   CamelGroupwiseEmbedFunc embed_func,
 				   gpointer embed_data,
 				   GCancellable *cancellable,
@@ -484,7 +485,10 @@ camel_groupwise_item_from_message (CamelMimeMessage *message,
 			add_attachment_xml (xml, parts.attachments->pdata[ii]);
 		g_string_append (xml, "</attachments>");
 	}
-	if (parts.link)
+	/* One link: a reply's before that of a message forwarded in it */
+	if (link_xml)
+		g_string_append (xml, link_xml);
+	else if (parts.link)
 		g_string_append (xml, parts.link);
 
 	g_string_append (xml, "</item>");

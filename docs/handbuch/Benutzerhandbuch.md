@@ -269,6 +269,8 @@ Nachrichten werden über GroupWise versendet: Interne Empfänger erhalten eine n
 
 - **Weiterleiten als Anhang**: Leiten Sie eine GroupWise-Nachricht als Anhang weiter, hängt GroupWise die Nachricht selbst an, wie der GroupWise-Client. Interne Empfänger sehen sie als GroupWise-Nachricht und nicht als MIME-Datei.
 
+- **Antworten** auf eine Nachricht des Kontos verknüpft GroupWise mit dem Original, wie beim GroupWise-Client: Das Original ist dort als beantwortet markiert, und die Antwort steht in der Diskussionsansicht unter ihm. Antworten Sie mit einem anderen Postfach als Absender ([4.8](#mail-absender)), geht die Antwort ohne diese Verknüpfung.
+
 - **Absender**: Gesendet wird immer über das Konto, zu dem die gewählte Absenderidentität gehört. Mehrere GroupWise-Konten nebeneinander sind möglich.
 
 ### Zustellstatus und Zurückziehen
@@ -777,7 +779,7 @@ Diese Übersicht stellt die Funktionen des GroupWise-Clients für Windows denen 
 | Bereich im GroupWise-Client | In Evolution |
 |---|---|
 | Ordnerliste und Systemordner; Ordner anlegen, umbenennen, verschieben, löschen | ja, in der Reihenfolge des Clients ([4.1](#mail-ordner)) |
-| Mail lesen, schreiben, antworten, weiterleiten; Anlagen, Entwürfe | ja; die Empfänger erhalten eine echte GroupWise-Nachricht ([4.2](#mail-senden)) |
+| Mail lesen, schreiben, antworten, weiterleiten; Anlagen, Entwürfe | ja; die Empfänger erhalten eine echte GroupWise-Nachricht, Antworten sind mit dem Original verknüpft ([4.2](#mail-senden)) |
 | Telefonnachrichten senden und empfangen | ja ([4.2](#mail-telefon)) |
 | Gesendete Objekte: Zustellstatus, Zurückziehen, Erneut senden | ja ([4.2](#mail-senden)) |
 | Signaturen | ja, mit GroupWise abgeglichen |

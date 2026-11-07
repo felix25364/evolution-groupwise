@@ -2152,7 +2152,7 @@ groupwise_folder_append_message_sync (CamelFolder *folder,
 		return FALSE;
 	}
 
-	item = camel_groupwise_item_from_message (message, NULL, TRUE, NULL, NULL, cancellable, error);
+	item = camel_groupwise_item_from_message (message, NULL, TRUE, NULL, NULL, NULL, cancellable, error);
 	if (!item)
 		return FALSE;
 
@@ -2817,8 +2817,10 @@ groupwise_folder_download (CamelFolder *folder,
 	return success;
 }
 
-/* SOAP has no References and no Message-ID for mail from the Internet; the
- * message itself has both, so the thread view fills in as messages arrive. */
+/* The summary has no Message-ID and no References (see
+ * CAMEL_GROUPWISE_SUMMARY_VIEW); the message itself has both, so the thread
+ * view fills in as messages are opened, and a reply finds the message it
+ * answers (also one that was in the cache before). */
 static void
 update_threading (CamelFolder *folder,
 		  const gchar *message_uid,
@@ -2839,6 +2841,21 @@ update_threading (CamelFolder *folder,
 
 	g_object_unref (parsed);
 	g_object_unref (info);
+}
+
+/* Camel takes a message from the cache this way before it asks
+ * get_message_sync() */
+static CamelMimeMessage *
+groupwise_folder_ref_cached_message (CamelFolder *folder,
+				     const gchar *message_uid,
+				     GCancellable *cancellable)
+{
+	CamelMimeMessage *message = groupwise_folder_get_message_cached (folder, message_uid, cancellable);
+
+	if (message)
+		update_threading (folder, message_uid, message);
+
+	return message;
 }
 
 static CamelMimeMessage *
@@ -3032,7 +3049,7 @@ camel_groupwise_folder_class_init (CamelGroupwiseFolderClass *class)
 	folder_class->search_free = groupwise_folder_search_free;
 	folder_class->get_uncached_uids = groupwise_folder_get_uncached_uids;
 	folder_class->get_filename = groupwise_folder_get_filename;
-	folder_class->get_message_cached = groupwise_folder_get_message_cached;
+	folder_class->get_message_cached = groupwise_folder_ref_cached_message;
 	folder_class->get_message_sync = groupwise_folder_get_message_sync;
 	folder_class->refresh_info_sync = groupwise_folder_refresh_info_sync;
 	folder_class->synchronize_sync = groupwise_folder_synchronize_sync;

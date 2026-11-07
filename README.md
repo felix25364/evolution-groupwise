@@ -422,6 +422,19 @@ The composer's *Request Read Receipt* (header `Disposition-Notification-To`) bec
 `<distribution>`: GroupWise sends the sender a mail as soon as a recipient opens the message (`<deleted>` and
 `<notify>` exist as well; not offered).
 
+### Replies
+
+A reply goes with the `<link>` that `replyRequest` gives for the message it answers (`<id>` the record ID of
+the item, `<type>reply</type>`); with it the POA marks the original `<replied>` and gives the reply that
+message as `<parent>` in its `<threading>`. Evolution keeps the message replied to only in its own
+`X-Evolution-Source-*` headers, which it takes off before the transport sees the message, so the transport
+looks for the Message-ID of `In-Reply-To` in the open folders of the account and in the Mailbox (a search
+on the summary, `header-matches "message-id"`). The summary has the Message-ID of a message from the message
+itself, when it is opened or taken from the cache: the POA gives the real one only with `default` in the
+view (which triples the response; with `messageId` in the view there is no `<parent>`), otherwise none
+or, with `threading`, one made up from the item. A reply sent from another mailbox (as its proxy) goes
+without the link.
+
 ### Phone messages
 
 *File → New → Phone Message* (`e_shell_window_register_new_item_actions`, once for a window) opens a dialog of its own (recipients, caller, company, phone, the seven

@@ -451,6 +451,19 @@ Die Option *Lesebestätigung anfordern* des Editors (Kopfzeile `Disposition-Noti
 `<distribution>`: GroupWise schickt dem Absender eine Mail, sobald ein Empfänger öffnet (`<deleted>` und
 `<notify>` gäbe es ebenso; nicht angeboten).
 
+### Antworten
+
+Eine Antwort geht mit dem `<link>`, den `replyRequest` für die beantwortete Nachricht liefert (`<id>` die
+Satz-ID des Items, `<type>reply</type>`); damit markiert der POA das Original als `<replied>` und gibt der
+Antwort diese Nachricht als `<parent>` in ihrem `<threading>`. Evolution nennt die beantwortete Nachricht nur
+in eigenen Kopfzeilen `X-Evolution-Source-*`, die es entfernt, bevor der Transport die Nachricht sieht; der
+Transport sucht deshalb die Message-ID aus `In-Reply-To` in den geöffneten Ordnern des Kontos und in der
+Mailbox (Suche im Summary, `header-matches "message-id"`). Die Message-ID kommt ins Summary aus der
+Nachricht selbst, wenn sie geöffnet oder aus dem Cache geholt wird: Der POA liefert die echte nur mit
+`default` im View (das verdreifacht die Antwort; mit `messageId` im View fehlt `<parent>`), sonst keine oder,
+mit `threading`, eine aus dem Item errechnete. Eine Antwort aus einem anderen Postfach (als dessen Proxy)
+geht ohne den Link.
+
 ### Telefonnachrichten
 
 *Datei → Neu → Telefonnachricht* (`e_shell_window_register_new_item_actions`, je Fenster einmal) öffnet einen eigenen Dialog (Empfänger, Anrufer, Firma, Telefon, die

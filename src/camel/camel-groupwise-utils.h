@@ -31,10 +31,12 @@ G_BEGIN_DECLS
  * looking at an item must not mark it opened or read. */
 #define CAMEL_GROUPWISE_FLAGS_VIEW "id modified status subject originalSubject category subType peek"
 
-/* Everything the message list shows. "messageID" is spelled like this in
- * views, the element in the response is <messageId>. */
+/* Everything the message list shows. No Message-ID: the POA gives the
+ * message's own one only with "default" in the view, which triples the
+ * response, otherwise none or one made up from the item. It comes from the
+ * message itself when that is opened. */
 #define CAMEL_GROUPWISE_SUMMARY_VIEW \
-	"id modified status source subject from to cc delivered created size hasAttachment messageID priority startDate container originalSubject category subType peek"
+	"id modified status source subject from to cc delivered created size hasAttachment priority startDate container originalSubject category subType peek"
 
 /* The message flags GroupWise keeps; everything else is local to Evolution */
 #define CAMEL_GROUPWISE_SERVER_FLAGS (CAMEL_MESSAGE_SEEN | CAMEL_MESSAGE_ANSWERED)

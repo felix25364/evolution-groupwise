@@ -169,11 +169,19 @@ test_mime_forward_item (void)
 	message = camel_mime_message_new ();
 	in = g_memory_input_stream_new_from_data (raw, -1, NULL);
 	camel_data_wrapper_construct_from_input_stream_sync (CAMEL_DATA_WRAPPER (message), in, NULL, NULL);
-	xml = camel_groupwise_item_from_message (message, NULL, FALSE, fake_embed, NULL, NULL, &error);
+	xml = camel_groupwise_item_from_message (message, NULL, FALSE, NULL, fake_embed, NULL, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (strstr (xml, "<attachment><id itemReference=\"1\">REF1@49:X</id><name>Hallo &amp; Grüße</name>"));
 	g_assert_nonnull (strstr (xml, "</attachments><link><id>0:ORIG1</id><type>forward</type></link></item>"));
 	g_assert_null (strstr (xml, "message/rfc822"));
+	g_free (xml);
+
+	/* In a reply the item has the reply's link */
+	xml = camel_groupwise_item_from_message (message, NULL, FALSE, "<link><id>R1</id><type>reply</type></link>",
+		fake_embed, NULL, NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (strstr (xml, "</attachments><link><id>R1</id><type>reply</type></link></item>"));
+	g_assert_null (strstr (xml, "<type>forward</type>"));
 	g_free (xml);
 	g_object_unref (in);
 	g_object_unref (message);
@@ -184,7 +192,7 @@ test_mime_forward_item (void)
 	message = camel_mime_message_new ();
 	in = g_memory_input_stream_new_from_data (raw, -1, NULL);
 	camel_data_wrapper_construct_from_input_stream_sync (CAMEL_DATA_WRAPPER (message), in, NULL, NULL);
-	xml = camel_groupwise_item_from_message (message, NULL, FALSE, fake_embed, NULL, NULL, &error);
+	xml = camel_groupwise_item_from_message (message, NULL, FALSE, NULL, fake_embed, NULL, NULL, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (strstr (xml, "message/rfc822"));
 	g_assert_null (strstr (xml, "itemReference"));
@@ -352,7 +360,7 @@ item_of (const gchar *raw,
 {
 	CamelMimeMessage *message = parse_message (raw);
 	GError *error = NULL;
-	gchar *xml = camel_groupwise_item_from_message (message, envelope, draft, NULL, NULL, NULL, &error);
+	gchar *xml = camel_groupwise_item_from_message (message, envelope, draft, NULL, NULL, NULL, NULL, &error);
 
 	g_assert_no_error (error);
 	g_assert_nonnull (xml);
@@ -626,7 +634,7 @@ test_mime_draft (void)
 	xmlNode *item;
 
 	/* Sending needs recipients ... */
-	g_assert_null (camel_groupwise_item_from_message (message, NULL, FALSE, NULL, NULL, NULL, &error));
+	g_assert_null (camel_groupwise_item_from_message (message, NULL, FALSE, NULL, NULL, NULL, NULL, &error));
 	g_assert_error (error, CAMEL_SERVICE_ERROR, CAMEL_SERVICE_ERROR_INVALID);
 	g_clear_error (&error);
 	g_object_unref (message);
@@ -644,7 +652,7 @@ assert_refused (const gchar *raw)
 	CamelMimeMessage *message = parse_message (raw);
 	GError *error = NULL;
 
-	g_assert_null (camel_groupwise_item_from_message (message, NULL, FALSE, NULL, NULL, NULL, &error));
+	g_assert_null (camel_groupwise_item_from_message (message, NULL, FALSE, NULL, NULL, NULL, NULL, &error));
 	g_assert_error (error, CAMEL_SERVICE_ERROR, CAMEL_SERVICE_ERROR_INVALID);
 	g_clear_error (&error);
 	g_object_unref (message);

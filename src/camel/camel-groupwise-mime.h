@@ -31,7 +31,8 @@ G_BEGIN_DECLS
  * messages are refused.
  *
  * @recipients: the envelope (with Bcc) when sending; NULL takes To, Cc and
- * Bcc of the message. With @draft the item is saved, not sent. */
+ * Bcc of the message. With @draft the item is saved, not sent. @link_xml is
+ * the <link> of a reply (from replyRequest), NULL for none. */
 /* The header the provider gives a message it hands out: the ID of its
  * GroupWise item. A message forwarded as attachment carries it along. */
 #define CAMEL_GROUPWISE_ITEM_ID_HEADER "X-GroupWise-Item-Id"
@@ -48,6 +49,7 @@ gchar *		camel_groupwise_item_from_message
 						(CamelMimeMessage *message,
 						 CamelAddress *recipients,
 						 gboolean draft,
+						 const gchar *link_xml,
 						 CamelGroupwiseEmbedFunc embed_func,
 						 gpointer embed_data,
 						 GCancellable *cancellable,
