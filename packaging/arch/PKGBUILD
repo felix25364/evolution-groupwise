@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: LGPL-2.1-or-later
+pkgname=evolution-groupwise
+pkgver=0.11.1.r1.ga10b0f3
+pkgrel=1
+pkgdesc='GroupWise mail, contacts and calendars in Evolution'
+arch=('x86_64')
+url='https://github.com/rabackes/evolution-groupwise'
+license=('LGPL-2.1-or-later')
+depends=('evolution>=3.52' 'evolution-data-server>=3.52' 'glib2' 'glibc'
+         'gdk-pixbuf2' 'gtk3' 'libgcc' 'libical' 'libsoup3' 'libxml2')
+# Arch's evolution and evolution-data-server packages include development headers.
+# Python is required at CMake configure time, even when checks are disabled.
+makedepends=('cmake' 'gettext' 'pkgconf' 'python')
+checkdepends=('openssl')
+# Pin the shared compatibility changes, rather than applying packaging patches.
+_commit=a10b0f391e817feac86dcf298a575c0b062a2212
+source=("$pkgname-$_commit.tar.gz::$url/archive/$_commit.tar.gz")
+sha256sums=('e01ea39416717b0f9516f9891e47e1f88902832bb0320b8e98003f31962be816')
+
+build() {
+  cmake -S "$pkgname-$_commit" -B build \
+    -DCMAKE_BUILD_TYPE=None \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DWITH_EVOLUTION_UI=ON
+  cmake --build build
+}
+
+check() {
+  ctest --test-dir build --output-on-failure
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install build
+}
