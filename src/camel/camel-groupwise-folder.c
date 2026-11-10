@@ -19,6 +19,7 @@
  * themselves as RFC 822 from the streaming interface of the POA.
  */
 
+#include "gw-camel-compat.h"
 #include <errno.h>
 #include <string.h>
 
@@ -48,8 +49,10 @@ struct _CamelGroupwiseFolder {
 	gchar *id;
 	CamelDataCache *cache;
 
+#if !EDS_CHECK_VERSION(3, 58, 0)
 	GMutex search_lock;
 	CamelFolderSearch *search;
+#endif
 
 	/* One refresh at a time; Evolution may ask from several threads */
 	GMutex refresh_lock;
@@ -180,6 +183,40 @@ folder_ref_connection_sync (CamelFolder *folder,
 	g_object_unref (store);
 
 	return cnc;
+}
+
+/* Camel 3.62 requires every atomic cache write to be committed or discarded.
+ * Both branches consume the stream, including on write/flush failure. */
+static GIOStream *
+gw_cache_add (CamelDataCache *cache, const gchar *path, const gchar *uid, GError **error)
+{
+#if EDS_CHECK_VERSION(3, 62, 0)
+	return camel_data_cache_add_atomic (cache, path, uid, error);
+#else
+	return camel_data_cache_add (cache, path, uid, error);
+#endif
+}
+
+static gboolean
+gw_cache_finish (CamelDataCache *cache, GIOStream *stream, const gchar *path,
+                 const gchar *uid, gboolean success, GCancellable *cancellable, GError **error)
+{
+	if (success)
+		success = g_output_stream_flush (g_io_stream_get_output_stream (stream), cancellable, error);
+#if EDS_CHECK_VERSION(3, 62, 0)
+	if (success) {
+		stream = camel_data_cache_commit_atomic (cache, stream, error);
+		success = stream != NULL;
+		g_clear_object (&stream);
+	} else {
+		camel_data_cache_discard_atomic (cache, stream);
+	}
+#else
+	g_object_unref (stream);
+	if (!success)
+		camel_data_cache_remove (cache, path, uid, NULL);
+#endif
+	return success;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1744,7 +1781,7 @@ groupwise_folder_sync_restore (CamelFolder *folder,
 		if (success)
 			forget_message (gw_folder, restore->pdata[ii], changes);
 		else
-			camel_folder_set_message_user_flag (folder, restore->pdata[ii], CAMEL_GROUPWISE_RESTORE_FLAG, FALSE);
+			gw_folder_set_message_user_flag (folder, restore->pdata[ii], CAMEL_GROUPWISE_RESTORE_FLAG, FALSE);
 	}
 	camel_folder_summary_save (summary, NULL);
 	if (camel_folder_change_info_changed (changes))
@@ -2086,13 +2123,13 @@ groupwise_folder_transfer_messages_to_sync (CamelFolder *source,
 		/* No second download for a message already here */
 		cached = camel_data_cache_get (src->cache, CACHE_PATH, uid, NULL);
 		if (cached) {
-			GIOStream *copy = camel_data_cache_add (dst->cache, CACHE_PATH, new_uid, NULL);
+			GIOStream *copy = gw_cache_add (dst->cache, CACHE_PATH, new_uid, NULL);
 
 			if (copy) {
-				if (g_output_stream_splice (g_io_stream_get_output_stream (copy),
-					g_io_stream_get_input_stream (cached), 0, cancellable, NULL) < 0)
-					camel_data_cache_remove (dst->cache, CACHE_PATH, new_uid, NULL);
-				g_object_unref (copy);
+				gboolean copied = g_output_stream_splice (g_io_stream_get_output_stream (copy),
+					g_io_stream_get_input_stream (cached), 0, cancellable, NULL) >= 0;
+
+				gw_cache_finish (dst->cache, copy, CACHE_PATH, new_uid, copied, cancellable, NULL);
 			}
 			g_object_unref (cached);
 		}
@@ -2205,12 +2242,12 @@ groupwise_folder_append_message_sync (CamelFolder *folder,
 	camel_folder_summary_add (summary, mi, TRUE);
 	g_object_unref (mi);
 
-	stream = camel_data_cache_add (gw_folder->cache, CACHE_PATH, uid, NULL);
+	stream = gw_cache_add (gw_folder->cache, CACHE_PATH, uid, NULL);
 	if (stream) {
-		if (camel_data_wrapper_write_to_output_stream_sync (CAMEL_DATA_WRAPPER (message),
-			g_io_stream_get_output_stream (stream), cancellable, NULL) < 0)
-			camel_data_cache_remove (gw_folder->cache, CACHE_PATH, uid, NULL);
-		g_object_unref (stream);
+		gboolean written = camel_data_wrapper_write_to_output_stream_sync (CAMEL_DATA_WRAPPER (message),
+			g_io_stream_get_output_stream (stream), cancellable, NULL) >= 0;
+
+		gw_cache_finish (gw_folder->cache, stream, CACHE_PATH, uid, written, cancellable, NULL);
 	}
 
 	camel_folder_summary_save (summary, NULL);
@@ -2281,20 +2318,14 @@ download_to_cache (CamelGroupwiseFolder *gw_folder,
 	GIOStream *stream;
 	gboolean success;
 
-	stream = camel_data_cache_add (gw_folder->cache, CACHE_PATH, message_uid, error);
+	stream = gw_cache_add (gw_folder->cache, CACHE_PATH, message_uid, error);
 	if (!stream)
 		return FALSE;
 
 	success = e_gw_connection_download_sync (cnc, id, as_mime, g_io_stream_get_output_stream (stream),
-			cancellable, error) &&
-		g_output_stream_flush (g_io_stream_get_output_stream (stream), cancellable, error);
+			cancellable, error);
 
-	g_object_unref (stream);
-
-	if (!success)
-		camel_data_cache_remove (gw_folder->cache, CACHE_PATH, message_uid, NULL);
-
-	return success;
+	return gw_cache_finish (gw_folder->cache, stream, CACHE_PATH, message_uid, success, cancellable, error);
 }
 
 /* The hidden "Mime.822" attachment of a message from the Internet */
@@ -2445,12 +2476,12 @@ add_phone_fields (CamelFolder *folder,
 	camel_medium_remove_header (CAMEL_MEDIUM (message), CAMEL_GROUPWISE_ITEM_ID_HEADER);
 
 	camel_data_cache_remove (gw_folder->cache, CACHE_PATH, message_uid, NULL);
-	stream = camel_data_cache_add (gw_folder->cache, CACHE_PATH, message_uid, NULL);
+	stream = gw_cache_add (gw_folder->cache, CACHE_PATH, message_uid, NULL);
 	if (stream) {
-		if (camel_data_wrapper_write_to_output_stream_sync (CAMEL_DATA_WRAPPER (message),
-			g_io_stream_get_output_stream (stream), cancellable, NULL) < 0)
-			camel_data_cache_remove (gw_folder->cache, CACHE_PATH, message_uid, NULL);
-		g_object_unref (stream);
+		gboolean written = camel_data_wrapper_write_to_output_stream_sync (CAMEL_DATA_WRAPPER (message),
+			g_io_stream_get_output_stream (stream), cancellable, NULL) >= 0;
+
+		gw_cache_finish (gw_folder->cache, stream, CACHE_PATH, message_uid, written, cancellable, NULL);
 	}
 
 	g_object_unref (message);
@@ -2726,14 +2757,11 @@ build_to_cache (CamelFolder *folder,
 			camel_medium_set_content (CAMEL_MEDIUM (message), camel_medium_get_content (CAMEL_MEDIUM (body)));
 		}
 
-		stream = camel_data_cache_add (gw_folder->cache, CACHE_PATH, message_uid, error);
+		stream = gw_cache_add (gw_folder->cache, CACHE_PATH, message_uid, error);
 		if (stream) {
 			success = camel_data_wrapper_write_to_output_stream_sync (CAMEL_DATA_WRAPPER (message),
-				g_io_stream_get_output_stream (stream), cancellable, error) >= 0 &&
-				g_output_stream_flush (g_io_stream_get_output_stream (stream), cancellable, error);
-			g_object_unref (stream);
-			if (!success)
-				camel_data_cache_remove (gw_folder->cache, CACHE_PATH, message_uid, NULL);
+				g_io_stream_get_output_stream (stream), cancellable, error) >= 0;
+			success = gw_cache_finish (gw_folder->cache, stream, CACHE_PATH, message_uid, success, cancellable, error);
 		}
 	}
 
@@ -2946,6 +2974,7 @@ groupwise_folder_get_permanent_flags (CamelFolder *folder)
 /* ------------------------------------------------------------------ */
 /* Searching the local summary */
 
+#if !EDS_CHECK_VERSION(3, 58, 0)
 static GPtrArray *
 groupwise_folder_search_by_expression (CamelFolder *folder,
 				       const gchar *expression,
@@ -3014,6 +3043,8 @@ groupwise_folder_search_free (CamelFolder *folder,
 	g_mutex_unlock (&gw_folder->search_lock);
 }
 
+#endif
+
 /* ------------------------------------------------------------------ */
 
 static void
@@ -3022,8 +3053,10 @@ groupwise_folder_finalize (GObject *object)
 	CamelGroupwiseFolder *gw_folder = CAMEL_GROUPWISE_FOLDER (object);
 
 	g_clear_object (&gw_folder->cache);
+#if !EDS_CHECK_VERSION(3, 58, 0)
 	g_clear_object (&gw_folder->search);
 	g_mutex_clear (&gw_folder->search_lock);
+#endif
 	g_mutex_clear (&gw_folder->refresh_lock);
 	g_free (gw_folder->id);
 	g_free (gw_folder->quick_since);
@@ -3043,11 +3076,15 @@ camel_groupwise_folder_class_init (CamelGroupwiseFolderClass *class)
 	object_class->finalize = groupwise_folder_finalize;
 
 	folder_class->get_permanent_flags = groupwise_folder_get_permanent_flags;
+#if EDS_CHECK_VERSION(3, 58, 0)
+	folder_class->dup_uncached_uids = groupwise_folder_get_uncached_uids;
+#else
 	folder_class->search_by_expression = groupwise_folder_search_by_expression;
 	folder_class->search_by_uids = groupwise_folder_search_by_uids;
 	folder_class->count_by_expression = groupwise_folder_count_by_expression;
 	folder_class->search_free = groupwise_folder_search_free;
 	folder_class->get_uncached_uids = groupwise_folder_get_uncached_uids;
+#endif
 	folder_class->get_filename = groupwise_folder_get_filename;
 	folder_class->get_message_cached = groupwise_folder_ref_cached_message;
 	folder_class->get_message_sync = groupwise_folder_get_message_sync;
@@ -3062,9 +3099,11 @@ camel_groupwise_folder_class_init (CamelGroupwiseFolderClass *class)
 static void
 camel_groupwise_folder_init (CamelGroupwiseFolder *gw_folder)
 {
+#if !EDS_CHECK_VERSION(3, 58, 0)
 	g_mutex_init (&gw_folder->search_lock);
-	g_mutex_init (&gw_folder->refresh_lock);
 	gw_folder->search = camel_folder_search_new ();
+#endif
+	g_mutex_init (&gw_folder->refresh_lock);
 	gw_folder->invitations = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 	g_mutex_init (&gw_folder->learn_lock);
 	gw_folder->learn = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
@@ -3127,9 +3166,14 @@ camel_groupwise_folder_new (CamelStore *store,
 
 	/* Keeps folder properties such as "offline-sync" */
 	path = g_build_filename (folder_dir, "cmeta", NULL);
+#if EDS_CHECK_VERSION(3, 58, 0)
+	camel_folder_take_state_filename (folder, path);
+	camel_folder_load_state (folder);
+#else
 	camel_object_set_state_filename (CAMEL_OBJECT (folder), path);
 	camel_object_state_read (CAMEL_OBJECT (folder));
 	g_free (path);
+#endif
 
 	path = g_build_filename (folder_dir, "cache", NULL);
 	gw_folder->cache = camel_data_cache_new (path, error);

@@ -23,6 +23,7 @@
 
 #include "e-gw-calendar.h"
 #include "e-gw-series.h"
+#include "gw-ical-compat.h"
 
 #define XSI "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
 

@@ -23,6 +23,7 @@
  * system address book is read-only, the user's personal ones writable.
  */
 
+#include "gw-contact-compat.h"
 #include <glib/gi18n-lib.h>
 #include <libedata-book/libedata-book.h>
 
@@ -235,7 +236,7 @@ list_item_cb (xmlNode *item,
 		return TRUE;
 
 	/* The object comes along: the cache needs no second request per contact */
-	vcard = e_vcard_to_string (E_VCARD (contact), EVC_FORMAT_VCARD_30);
+	vcard = gw_vcard_to_string (E_VCARD (contact));
 	data->infos = g_slist_prepend (data->infos, e_book_meta_backend_info_new (
 		e_contact_get_const (contact, E_CONTACT_UID),
 		e_contact_get_const (contact, E_CONTACT_REV),

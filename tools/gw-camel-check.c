@@ -21,6 +21,7 @@
  * --uid fetches that message of the Mailbox instead of the newest one.
  */
 
+#include "gw-camel-compat.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -263,7 +264,7 @@ main (int argc,
 		return 1;
 	}
 	printf ("\n%s: %d messages, %d unread, refreshed in %.2f s\n", camel_folder_get_full_name (inbox),
-		camel_folder_get_message_count (inbox), camel_folder_get_unread_message_count (inbox),
+		camel_folder_get_message_count (inbox), gw_folder_get_unread_message_count (inbox),
 		(g_get_monotonic_time () - start) / 1e6);
 
 	/* The next refresh is a quick check (getQuickMessages) */

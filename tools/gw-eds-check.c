@@ -27,6 +27,7 @@
  * prefix (tools/dev-account.sh sets it up).
  */
 
+#include "gw-contact-compat.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -242,7 +243,7 @@ write_test (GDBusConnection *bus,
 		e_contact_set (contact, E_CONTACT_TITLE, "Oberster Tester");
 		e_contact_set (contact, E_CONTACT_PHONE_BUSINESS, "+49 6221 0000002");
 		e_contact_set (contact, E_CONTACT_NOTE, NULL);
-		changed = e_vcard_to_string (E_VCARD (contact), EVC_FORMAT_VCARD_30);
+		changed = gw_vcard_to_string (E_VCARD (contact));
 
 		reply = book_call (bus, bus_name, path, "ModifyContacts",
 			g_variant_new ("(^asu)", (const gchar *[]) { changed, NULL }, 0), NULL, &error);

@@ -16,6 +16,7 @@
  * License for more details.
  */
 
+#include "gw-camel-compat.h"
 #include "camel-groupwise-message-info.h"
 
 struct _CamelGroupwiseMessageInfo {

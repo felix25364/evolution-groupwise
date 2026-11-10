@@ -18,6 +18,7 @@
  * Usage (through tests/mock/run-with-mock.py): test-camel MODULE-PATH
  */
 
+#include "gw-camel-compat.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -457,7 +458,7 @@ test_refresh (Fixture *fixture,
 	CamelMessageInfo *info;
 
 	g_assert_cmpint (camel_folder_get_message_count (folder), ==, 2);
-	g_assert_cmpint (camel_folder_get_unread_message_count (folder), ==, 1);
+	g_assert_cmpint (gw_folder_get_unread_message_count (folder), ==, 1);
 
 	info = camel_folder_get_message_info (folder, MAIL1);
 	g_assert_nonnull (info);
@@ -474,6 +475,33 @@ test_refresh (Fixture *fixture,
 	g_assert_false (camel_message_info_get_flags (info) & CAMEL_MESSAGE_SEEN);
 	g_object_unref (info);
 
+	g_object_unref (folder);
+}
+
+/* Exercise the inherited CamelStoreDB search on newer EDS as well as
+ * the CamelFolderSearch implementation on 3.52. */
+static void
+test_summary_search (Fixture *fixture,
+                     gconstpointer data)
+{
+	CamelFolder *folder = open_inbox (fixture);
+	GError *error = NULL;
+	GPtrArray *uids;
+
+	uids = camel_folder_search_by_expression (folder,
+		"(match-all (header-contains \"subject\" \"Quarterly\"))", NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (uids);
+	g_assert_cmpuint (uids->len, ==, 1);
+	g_assert_cmpstr (uids->pdata[0], ==, MAIL1);
+	camel_folder_search_free (folder, uids);
+
+	uids = camel_folder_search_by_expression (folder,
+		"(match-all (header-contains \"subject\" \"no-such-subject\"))", NULL, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (uids);
+	g_assert_cmpuint (uids->len, ==, 0);
+	camel_folder_search_free (folder, uids);
 	g_object_unref (folder);
 }
 
@@ -864,8 +892,8 @@ test_labels (Fixture *fixture,
 	g_assert_false (has_label (folder, MAIL1, "$Labelimportant"));
 
 	/* Changed in Evolution: Kurs off, Personal on */
-	camel_folder_set_message_user_flag (folder, MAIL2, "kurs", FALSE);
-	camel_folder_set_message_user_flag (folder, MAIL2, "$Labelpersonal", TRUE);
+	gw_folder_set_message_user_flag (folder, MAIL2, "kurs", FALSE);
+	gw_folder_set_message_user_flag (folder, MAIL2, "$Labelpersonal", TRUE);
 	g_assert_true (camel_folder_synchronize_sync (folder, FALSE, NULL, &error));
 	g_assert_no_error (error);
 	text = mock_get_f ("/_test/categories?id=%s", MAIL2);
@@ -891,7 +919,7 @@ test_labels (Fixture *fixture,
 		g_strfreev (labels);
 		g_object_unref (settings);
 
-		camel_folder_set_message_user_flag (folder, MAIL1, "$Labelwork", TRUE);
+		gw_folder_set_message_user_flag (folder, MAIL1, "$Labelwork", TRUE);
 		g_assert_true (camel_folder_synchronize_sync (folder, FALSE, NULL, &error));
 		g_assert_no_error (error);
 		text = mock_get_f ("/_test/category-names");
@@ -1122,7 +1150,7 @@ restore_from_trash (Fixture *fixture,
 	g_assert_true (camel_folder_refresh_info_sync (trash, NULL, &error));
 	g_assert_true (has_message (trash, uid));
 
-	camel_folder_set_message_user_flag (trash, uid, "gw-restore", TRUE);
+	gw_folder_set_message_user_flag (trash, uid, "gw-restore", TRUE);
 	g_assert_true (camel_folder_synchronize_sync (trash, FALSE, NULL, &error));
 	g_assert_no_error (error);
 	g_assert_false (has_message (trash, uid));
@@ -1892,9 +1920,26 @@ test_cancelled (Fixture *fixture,
 	 * just a failure (Camel checks the cancellable only before the call) */
 	mock_do ("/_test/delay?action=getItem&seconds=1");
 	g_thread_unref (g_thread_new ("cancel", cancel_thread, cancellable));
-	g_assert_null (camel_folder_get_message_sync (folder, MAIL1, cancellable, &error));
+	g_assert_null (camel_folder_get_message_sync (folder, MAIL2, cancellable, &error));
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_CANCELLED);
 	g_clear_error (&error);
+
+	/* A failed atomic write must release its reservation and leave no
+	 * partial message: retry the same cache key, then read it offline. */
+	g_assert_null (camel_folder_get_message_cached (folder, MAIL2, NULL));
+	{
+		CamelMimeMessage *message = camel_folder_get_message_sync (folder, MAIL2, NULL, &error);
+
+		g_assert_no_error (error);
+		g_assert_nonnull (message);
+		g_object_unref (message);
+		g_assert_true (camel_offline_store_set_online_sync (CAMEL_OFFLINE_STORE (fixture->store), FALSE, NULL, &error));
+		g_assert_no_error (error);
+		message = camel_folder_get_message_sync (folder, MAIL2, NULL, &error);
+		g_assert_no_error (error);
+		g_assert_nonnull (message);
+		g_object_unref (message);
+	}
 
 	g_object_unref (cancellable);
 	g_object_unref (folder);
@@ -2023,6 +2068,7 @@ main (int argc,
 	g_test_add ("/camel/folder-info", Fixture, NULL, fixture_setup, test_folder_info, fixture_teardown);
 	g_test_add ("/camel/refresh", Fixture, NULL, fixture_setup, test_refresh, fixture_teardown);
 	g_test_add ("/camel/get-message", Fixture, NULL, fixture_setup, test_get_message, fixture_teardown);
+	g_test_add ("/camel/summary-search", Fixture, NULL, fixture_setup, test_summary_search, fixture_teardown);
 	g_test_add ("/camel/summary-persists", Fixture, NULL, fixture_setup, test_summary_persists, fixture_teardown);
 	/* These change the state of the mock; keep them last */
 	g_test_add ("/camel/flags", Fixture, NULL, fixture_setup, test_flags, fixture_teardown);

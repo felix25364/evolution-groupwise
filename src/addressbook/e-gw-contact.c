@@ -22,6 +22,7 @@
  * phone and address lists are replaced as a whole.
  */
 
+#include "gw-contact-compat.h"
 #include <string.h>
 
 #include <glib/gi18n-lib.h>
@@ -416,7 +417,7 @@ single_fields (EContact *contact)
 	g_hash_table_insert (fields, (gpointer) "fullName/nameSuffix", name && name->suffixes && *name->suffixes ? g_strdup (name->suffixes) : NULL);
 	for (ii = 0; ii < G_N_ELEMENTS (text_fields); ii++)
 		g_hash_table_insert (fields, (gpointer) text_fields[ii].path, contact_text (contact, text_fields[ii].field));
-	g_hash_table_insert (fields, (gpointer) "personalInfo/birthday", birthday ? e_contact_date_to_string (birthday) : NULL);
+	g_hash_table_insert (fields, (gpointer) "personalInfo/birthday", birthday ? gw_contact_date_to_string (birthday) : NULL);
 
 	e_contact_name_free (name);
 	e_contact_date_free (birthday);

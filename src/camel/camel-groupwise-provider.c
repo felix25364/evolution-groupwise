@@ -16,6 +16,7 @@
  * License for more details.
  */
 
+#include "gw-camel-compat.h"
 #include <glib/gi18n-lib.h>
 
 #include "camel-groupwise-settings.h"
@@ -73,6 +74,7 @@ static CamelProvider groupwise_provider = {
 	/* ... */
 };
 
+#if !EDS_CHECK_VERSION(3, 58, 0)
 static void
 add_hash (guint *hash,
 	  const gchar *s)
@@ -106,6 +108,8 @@ groupwise_url_equal (gconstpointer a,
 		&& u1->port == u2->port;
 }
 
+#endif
+
 void
 camel_provider_module_init (void)
 {
@@ -115,8 +119,10 @@ camel_provider_module_init (void)
 	groupwise_provider.object_types[CAMEL_PROVIDER_STORE] = CAMEL_TYPE_GROUPWISE_STORE;
 	/* Only together with the store of the same account */
 	groupwise_provider.object_types[CAMEL_PROVIDER_TRANSPORT] = CAMEL_TYPE_GROUPWISE_TRANSPORT;
+#if !EDS_CHECK_VERSION(3, 58, 0)
 	groupwise_provider.url_hash = groupwise_url_hash;
 	groupwise_provider.url_equal = groupwise_url_equal;
+#endif
 	groupwise_provider.authtypes = g_list_prepend (NULL, &camel_groupwise_password_authtype);
 	groupwise_provider.translation_domain = GETTEXT_PACKAGE;
 
