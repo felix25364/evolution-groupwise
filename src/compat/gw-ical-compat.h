@@ -75,4 +75,3 @@ gw_recurrence_get_by_month_array (ICalRecurrence *rule)
 	return gw_recurrence_trim_array (i_cal_recurrence_get_by_month_array (rule));
 #endif
 }
-
