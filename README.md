@@ -495,3 +495,11 @@ new language is added as `po/<lang>.po` and listed in `po/LINGUAS`.
 GNU Lesser General Public License, version 2.1 or later (see `COPYING`), like evolution-data-server.
 
 Copyright © 2026 bond Software Entwicklung GmbH.
+
+## Experimental Thunderbird integration
+
+`thunderbird/` contains a separate Linux Native Messaging host and Thunderbird
+153 ESR add-on using the same SOAP core, with native GroupWise folders and mail
+access. It builds independently of Evolution/EDS/Camel. See the
+[Thunderbird README](thunderbird/README.md) for installation, verified mock-backed
+runtime behavior and current limitations (including unsupported sending).

@@ -1,0 +1,79 @@
+[
+  {
+    "namespace": "groupwise",
+    "functions": [
+      {
+        "name": "bootstrap",
+        "type": "function",
+        "async": true,
+        "parameters": []
+      },
+      {
+        "name": "createAccount",
+        "type": "function",
+        "async": true,
+        "parameters": [
+          {
+            "name": "settings",
+            "type": "any"
+          }
+        ]
+      },
+      {
+        "name": "sync",
+        "type": "function",
+        "async": true,
+        "parameters": [
+          {
+            "name": "serverKey",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "name": "answer",
+        "type": "function",
+        "async": true,
+        "parameters": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "response",
+            "type": "any"
+          }
+        ]
+      },
+      {
+        "name": "listAccounts",
+        "type": "function",
+        "async": true,
+        "parameters": []
+      },
+      {
+        "name": "isGroupwiseIdentity",
+        "type": "function",
+        "async": true,
+        "parameters": [
+          {
+            "name": "identityId",
+            "type": "string"
+          }
+        ]
+      }
+    ],
+    "events": [
+      {
+        "name": "onRequest",
+        "type": "function",
+        "parameters": [
+          {
+            "name": "request",
+            "type": "any"
+          }
+        ]
+      }
+    ]
+  }
+]

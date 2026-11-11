@@ -1,0 +1,46 @@
+{
+  "manifest_version": 2,
+  "name": "GroupWise Native for Thunderbird",
+  "version": "0.1.0",
+  "description": "Experimental native GroupWise SOAP integration for Linux.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "groupwise@evolution-groupwise.org",
+      "strict_min_version": "153.0",
+      "strict_max_version": "153.*"
+    }
+  },
+  "permissions": [
+    "nativeMessaging",
+    "compose"
+  ],
+  "background": {
+    "scripts": [
+      "transport.js",
+      "background.js"
+    ]
+  },
+  "options_ui": {
+    "page": "setup.html",
+    "open_in_tab": true
+  },
+  "experiment_apis": {
+    "groupwise": {
+      "schema": "schema.json",
+      "parent": {
+        "scopes": [
+          "addon_parent"
+        ],
+        "paths": [
+          [
+            "groupwise"
+          ]
+        ],
+        "script": "experiment.js",
+        "events": [
+          "startup"
+        ]
+      }
+    }
+  }
+}
