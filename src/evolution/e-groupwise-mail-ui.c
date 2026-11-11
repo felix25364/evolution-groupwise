@@ -24,6 +24,7 @@
  * the provider) and synchronizes the folder, the provider does the rest.
  */
 
+#include "gw-camel-compat.h"
 #include <string.h>
 
 #include <glib/gi18n-lib.h>
@@ -193,7 +194,7 @@ action_restore_cb (EUIAction *action,
 
 	uids = e_mail_reader_get_selected_uids (reader);
 	for (ii = 0; uids && ii < uids->len; ii++)
-		camel_folder_set_message_user_flag (folder, uids->pdata[ii], RESTORE_FLAG, TRUE);
+		gw_folder_set_message_user_flag (folder, uids->pdata[ii], RESTORE_FLAG, TRUE);
 
 	if (uids && uids->len > 0) {
 		data = g_new0 (RestoreData, 1);

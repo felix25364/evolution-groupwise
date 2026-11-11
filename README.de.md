@@ -41,6 +41,7 @@ Die Tests starten einen Mock-POA auf localhost (Python 3).
 
 ### Pakete
 
+- **Arch Linux**: `cd packaging/arch && makepkg -si` (siehe [Arch-Anleitung](packaging/arch/README.md)).
 - **Debian / Ubuntu**: `dpkg-buildpackage -us -uc -b` (siehe `debian/`).
 - **openSUSE / Fedora**: `packaging/rpm/evolution-groupwise.spec`, siehe `packaging/rpm/README.md`.
 

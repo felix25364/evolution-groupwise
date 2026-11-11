@@ -23,6 +23,7 @@
  * only there. The mail and the draft it makes stay in the mailbox.
  */
 
+#include "gw-camel-compat.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -224,10 +225,10 @@ main (int argc,
 	g_free (copy_uid);
 
 	/* A label is a category: set, written, read back after a full scan, taken off */
-	camel_folder_set_message_user_flag (inbox, uid, "$Labelimportant", TRUE);
+	gw_folder_set_message_user_flag (inbox, uid, "$Labelimportant", TRUE);
 	check (camel_folder_synchronize_sync (inbox, FALSE, NULL, &error), "label Important", &error);
 	check (server_has (inbox, uid) && label_on_server (inbox, uid, "$Labelimportant"), "category Urgent on the server", NULL);
-	camel_folder_set_message_user_flag (inbox, uid, "$Labelimportant", FALSE);
+	gw_folder_set_message_user_flag (inbox, uid, "$Labelimportant", FALSE);
 	check (camel_folder_synchronize_sync (inbox, FALSE, NULL, &error), "label off", &error);
 	check (!label_on_server (inbox, uid, "$Labelimportant"), "category gone on the server", NULL);
 
@@ -239,8 +240,8 @@ main (int argc,
 		gchar *on_list;
 		CamelMessageInfo *info;
 
-		camel_folder_set_message_user_tag (inbox, uid, "follow-up", "Follow-Up");
-		camel_folder_set_message_user_tag (inbox, uid, "due-by", due);
+		gw_folder_set_message_user_tag (inbox, uid, "follow-up", "Follow-Up");
+		gw_folder_set_message_user_tag (inbox, uid, "due-by", due);
 		check (camel_folder_synchronize_sync (inbox, FALSE, NULL, &error), "flag for follow-up", &error);
 		on_list = tasklist && server_has (tasklist, uid) ? g_strdup (uid) : NULL;
 		if (!on_list && tasklist)
@@ -252,7 +253,7 @@ main (int argc,
 			camel_header_decode_date (due, NULL), "with the due date", NULL);
 		g_clear_object (&info);
 
-		camel_folder_set_message_user_tag (inbox, uid, "completed-on", camel_header_format_date (time (NULL), 0));
+		gw_folder_set_message_user_tag (inbox, uid, "completed-on", camel_header_format_date (time (NULL), 0));
 		check (camel_folder_synchronize_sync (inbox, FALSE, NULL, &error), "mark completed", &error);
 		if (tasklist && on_list)
 			server_has (tasklist, on_list);
@@ -261,9 +262,9 @@ main (int argc,
 			*camel_message_info_get_user_tag (info, "completed-on"), "completed on the Tasklist", NULL);
 		g_clear_object (&info);
 
-		camel_folder_set_message_user_tag (inbox, uid, "follow-up", NULL);
-		camel_folder_set_message_user_tag (inbox, uid, "due-by", NULL);
-		camel_folder_set_message_user_tag (inbox, uid, "completed-on", NULL);
+		gw_folder_set_message_user_tag (inbox, uid, "follow-up", NULL);
+		gw_folder_set_message_user_tag (inbox, uid, "due-by", NULL);
+		gw_folder_set_message_user_tag (inbox, uid, "completed-on", NULL);
 		check (camel_folder_synchronize_sync (inbox, FALSE, NULL, &error), "flag off", &error);
 		check (tasklist && on_list && !server_has (tasklist, on_list), "off the Tasklist", NULL);
 		check (server_has (inbox, uid), "still in the Mailbox", NULL);
@@ -337,7 +338,7 @@ main (int argc,
 	/* Restore: the copy goes back into the test folder, then the original,
 	 * deleted from the Mailbox, back into the Mailbox */
 	if (trash_uid) {
-		camel_folder_set_message_user_flag (trash, trash_uid, "gw-restore", TRUE);
+		gw_folder_set_message_user_flag (trash, trash_uid, "gw-restore", TRUE);
 		check (camel_folder_synchronize_sync (trash, FALSE, NULL, &error), "restore the copy", &error);
 		g_free (copy_uid);
 		camel_folder_refresh_info_sync (test, NULL, NULL);
@@ -354,7 +355,7 @@ main (int argc,
 		check (trash_uid != NULL, "original in the Trash", NULL);
 		check (!server_has (inbox, uid), "original out of the Mailbox", NULL);
 		if (trash_uid) {
-			camel_folder_set_message_user_flag (trash, trash_uid, "gw-restore", TRUE);
+			gw_folder_set_message_user_flag (trash, trash_uid, "gw-restore", TRUE);
 			check (camel_folder_synchronize_sync (trash, FALSE, NULL, &error), "restore the original", &error);
 			check (server_has (inbox, uid), "original back in the Mailbox", NULL);
 			check (!server_has (trash, trash_uid), "original out of the Trash", NULL);
@@ -529,7 +530,7 @@ main (int argc,
 	trash_uid = id_in (uid, trash);
 	check (trash_uid != NULL, "copy in the Trash with its folder", NULL);
 	if (trash_uid) {
-		camel_folder_set_message_user_flag (trash, trash_uid, "gw-restore", TRUE);
+		gw_folder_set_message_user_flag (trash, trash_uid, "gw-restore", TRUE);
 		check (camel_folder_synchronize_sync (trash, FALSE, NULL, &error), "restore it", &error);
 		check (!server_has (trash, trash_uid), "out of the Trash", NULL);
 		check (server_has (inbox, uid), "original still in the Mailbox", NULL);

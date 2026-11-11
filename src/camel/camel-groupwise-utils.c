@@ -16,6 +16,7 @@
  * License for more details.
  */
 
+#include "gw-camel-compat.h"
 #include <string.h>
 
 #include "e-gw-xml.h"

@@ -44,6 +44,8 @@ add_compile_definitions(
 )
 add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers)
 
+include_directories("${PROJECT_SOURCE_DIR}/src/compat")
+
 enable_testing()
 
 add_subdirectory(src/libegroupwise)

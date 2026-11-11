@@ -36,6 +36,7 @@
 #include "e-gw-xml.h"
 
 #include "e-gw-calendar.h"
+#include "gw-ical-compat.h"
 
 static gchar *
 item_type (xmlNode *item)
@@ -1391,8 +1392,8 @@ append_rrule (GString *xml,
 	freq = i_cal_recurrence_get_freq (rule);
 	frequency = freq == I_CAL_DAILY_RECURRENCE ? "Daily" : freq == I_CAL_WEEKLY_RECURRENCE ? "Weekly" :
 		freq == I_CAL_MONTHLY_RECURRENCE ? "Monthly" : freq == I_CAL_YEARLY_RECURRENCE ? "Yearly" : NULL;
-	array = i_cal_recurrence_get_by_set_pos_array (rule);
-	if (!frequency || !ok || (array && array->len && g_array_index (array, gshort, 0) != I_CAL_RECURRENCE_ARRAY_MAX)) {
+	array = gw_recurrence_get_by_set_pos_array (rule);
+	if (!frequency || !ok || (array && array->len)) {
 		if (array)
 			g_array_unref (array);
 		g_object_unref (rule);
@@ -1434,10 +1435,10 @@ append_rrule (GString *xml,
 	if (i_cal_recurrence_get_interval (rule) > 1)
 		e_gw_xml_add_int (xml, "interval", i_cal_recurrence_get_interval (rule));
 
-	array = i_cal_recurrence_get_by_day_array (rule);
-	if (array && array->len && g_array_index (array, gshort, 0) != I_CAL_RECURRENCE_ARRAY_MAX) {
+	array = gw_recurrence_get_by_day_array (rule);
+	if (array && array->len) {
 		g_string_append (xml, "<byDay>");
-		for (ii = 0; ii < array->len && g_array_index (array, gshort, ii) != I_CAL_RECURRENCE_ARRAY_MAX; ii++) {
+		for (ii = 0; ii < array->len; ii++) {
 			gshort value = g_array_index (array, gshort, ii);
 			gint weekday = i_cal_recurrence_day_day_of_week (value);
 			gint position = i_cal_recurrence_day_position (value);
@@ -1457,30 +1458,30 @@ append_rrule (GString *xml,
 	if (array)
 		g_array_unref (array);
 
-	array = i_cal_recurrence_get_by_month_day_array (rule);
-	if (array && array->len && g_array_index (array, gshort, 0) != I_CAL_RECURRENCE_ARRAY_MAX) {
+	array = gw_recurrence_get_by_month_day_array (rule);
+	if (array && array->len) {
 		g_string_append (xml, "<byMonthDay>");
-		for (ii = 0; ii < array->len && g_array_index (array, gshort, ii) != I_CAL_RECURRENCE_ARRAY_MAX; ii++)
+		for (ii = 0; ii < array->len; ii++)
 			e_gw_xml_add_int (xml, "day", g_array_index (array, gshort, ii));
 		g_string_append (xml, "</byMonthDay>");
 	}
 	if (array)
 		g_array_unref (array);
 
-	array = i_cal_recurrence_get_by_year_day_array (rule);
-	if (array && array->len && g_array_index (array, gshort, 0) != I_CAL_RECURRENCE_ARRAY_MAX) {
+	array = gw_recurrence_get_by_year_day_array (rule);
+	if (array && array->len) {
 		g_string_append (xml, "<byYearDay>");
-		for (ii = 0; ii < array->len && g_array_index (array, gshort, ii) != I_CAL_RECURRENCE_ARRAY_MAX; ii++)
+		for (ii = 0; ii < array->len; ii++)
 			e_gw_xml_add_int (xml, "day", g_array_index (array, gshort, ii));
 		g_string_append (xml, "</byYearDay>");
 	}
 	if (array)
 		g_array_unref (array);
 
-	array = i_cal_recurrence_get_by_month_array (rule);
-	if (array && array->len && g_array_index (array, gshort, 0) != I_CAL_RECURRENCE_ARRAY_MAX) {
+	array = gw_recurrence_get_by_month_array (rule);
+	if (array && array->len) {
 		g_string_append (xml, "<byMonth>");
-		for (ii = 0; ii < array->len && g_array_index (array, gshort, ii) != I_CAL_RECURRENCE_ARRAY_MAX; ii++)
+		for (ii = 0; ii < array->len; ii++)
 			e_gw_xml_add_int (xml, "month", i_cal_recurrence_month_month (g_array_index (array, gshort, ii)));
 		g_string_append (xml, "</byMonth>");
 	}

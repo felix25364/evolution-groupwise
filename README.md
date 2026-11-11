@@ -40,6 +40,7 @@ needed). The tests start a mock POA on localhost (Python 3).
 
 ### Packages
 
+- **Arch Linux**: `cd packaging/arch && makepkg -si` (see [Arch instructions](packaging/arch/README.md)).
 - **Debian / Ubuntu**: `dpkg-buildpackage -us -uc -b` (see `debian/`).
 - **openSUSE / Fedora**: `packaging/rpm/evolution-groupwise.spec`, see `packaging/rpm/README.md`.
 

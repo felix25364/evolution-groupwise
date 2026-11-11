@@ -178,7 +178,13 @@ test_read_group (void)
 	g_assert_true (GPOINTER_TO_INT (e_contact_get (contact, E_CONTACT_IS_LIST)));
 	g_assert_cmpstr (e_contact_get_const (contact, E_CONTACT_FULL_NAME), ==, "Team");
 
-	attrs = e_contact_get_attributes (contact, E_CONTACT_EMAIL);
+	attrs = NULL;
+	for (link = e_vcard_get_attributes (E_VCARD (contact)); link; link = g_list_next (link)) {
+		EVCardAttribute *attr = link->data;
+
+		if (g_ascii_strcasecmp (e_vcard_attribute_get_name (attr), EVC_EMAIL) == 0)
+			attrs = g_list_append (attrs, e_vcard_attribute_copy (attr));
+	}
 	for (link = attrs; link; link = g_list_next (link), count++) {
 		EVCardAttribute *attr = link->data;
 		GList *param = e_vcard_attribute_get_param (attr, EVC_X_DEST_EMAIL);

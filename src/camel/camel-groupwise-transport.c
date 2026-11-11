@@ -16,6 +16,7 @@
  * License for more details.
  */
 
+#include "gw-camel-compat.h"
 #include <glib/gi18n-lib.h>
 
 #include "e-gw-connection.h"

@@ -37,6 +37,7 @@
 #include <string.h>
 
 #include <libecal/libecal.h>
+#include "gw-ical-compat.h"
 
 static gint failures;
 
