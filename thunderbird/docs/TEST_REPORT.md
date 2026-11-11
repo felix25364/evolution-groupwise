@@ -147,3 +147,24 @@ found no GroupWise JavaScript exceptions. Errors intentionally induced for tests
   work. Canonical save conversion and mbox appending are explicitly unsupported.
 - No publication of a reusable cloud environment is claimed. The earlier cloud
   draft service error is separate from the committed, tested repository workflow.
+
+## Git delivery
+
+Implementation commit: `8cf3630968498a80c1cd2f484887923c371fbe0f`, pushed to
+`origin/feat/thunderbird-groupwise-linux-mvp` in `felix25364/evolution-groupwise`.
+The default branch was not changed or merged.
+
+A draft PR was attempted using:
+
+```sh
+gh pr create --repo felix25364/evolution-groupwise \
+  --head feat/thunderbird-groupwise-linux-mvp --base main --draft \
+  --title "Add native GroupWise mail accounts for Thunderbird 153 on Linux" \
+  --body-file /tmp/groupwise-pr.md
+```
+
+Result: `Post "https://api.github.com/graphql": Forbidden`. A subsequent
+`curl -I --max-time 20 https://api.github.com/` returned a CONNECT tunnel HTTP
+403 from the environment proxy. This blocks PR creation through the available
+API route; it is separate from the successful authenticated Git push. No PR URL
+is claimed. Final delivery notes are in a separate documentation-only commit.

@@ -3,7 +3,8 @@
 Status: mail-access MVP is runtime verified with Thunderbird 153.6.0esr and the
 mock POA. All six integration CTests and six original Evolution CTests passed;
 a separate image without Evolution/Camel/EDS also built and passed four suites.
-Final source review is complete; Git delivery is in progress.
+Implementation and final source review are complete. The feature branch is
+pushed; automatic draft PR creation is blocked by GitHub API proxy access.
 Checkboxes mean implemented and verified as described, not merely files created.
 
 ## M0 – Repository analysis
@@ -57,8 +58,8 @@ Checkboxes mean implemented and verified as described, not merely files created.
 - [x] Review results and record exact commands, failures/fixes and limitations.
 ## M8 – Documentation and final delivery
 - [x] README, architecture, feasibility, test report and truthful final checklist.
-- [ ] Review code/security, artifacts and final diff; commit all intended files.
-- [ ] Verify clean feature branch, push if permitted, report hashes/PR outcome.
+- [x] Review code/security, artifacts and final diff; commit all intended files.
+- [x] Verify clean feature branch, push if permitted, report hashes/PR outcome.
 
 ## Remaining problems and follow-up scope
 - [ ] Native sending and outgoing-server/composer integration: optional beyond the
@@ -129,3 +130,16 @@ Checkboxes mean implemented and verified as described, not merely files created.
   was modified to add them.
 - Final native release validation: six suites passed; minimal-image rebuild and
   four suites passed. Original Evolution regression remains six passing suites.
+
+## Git delivery evidence
+- Implementation commit: `8cf3630968498a80c1cd2f484887923c371fbe0f`.
+- Branch: `feat/thunderbird-groupwise-linux-mvp`; pushed successfully to
+  `felix25364/evolution-groupwise` and configured to track its origin branch.
+- No main-branch commit, force-push or merge was performed.
+- Draft PR command was attempted with GitHub CLI, using the existing binding.
+  `POST https://api.github.com/graphql` returned `Forbidden`. A read-only probe
+  confirmed `CONNECT tunnel failed` with HTTP 403 from the environment proxy.
+  Git HTTPS push works; GitHub API access is a separate external limitation.
+- No PR was created. The pushed branch remains reviewable on GitHub. A final
+  documentation-only delivery commit records these results; its hash is in the
+  final engineering response/Git history.
